@@ -3,13 +3,27 @@ import numpy as np
 from flask import Flask, request, render_template, jsonify
 from tensorflow.keras.models import load_model
 from tensorflow.keras.utils import load_img, img_to_array
+import urllib.request
 
 app = Flask(__name__)
 UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-MODEL_PATH = '/Users/mac/Downloads/faceEmotions/model4.h5'
+
+
+MODEL_PATH = 'model4.h5'
+
+MODEL_URL = 'https://docs.google.com/uc?export=download&id=1WuoWc8B919dENaY1Ynu0cUogi4cmaSuY'
+
+if not os.path.exists(MODEL_PATH):
+    print("Downloading AI model matrix assets from Google Drive...")
+    try:
+        urllib.request.urlretrieve(MODEL_URL, MODEL_PATH)
+        print("Download complete!")
+    except Exception as e:
+        print(f"Error downloading model: {e}")
+
 model = load_model(MODEL_PATH)
 
 EMOTION_CLASSES = {
