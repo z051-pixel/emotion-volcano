@@ -1,0 +1,153 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="max-w-5xl w-full mx-auto p-6 grid grid-cols-1 md:grid-cols-2 gap-8 my-auto items-stretch">
+    <div class="warm-card rounded-2xl p-6 flex flex-col justify-between gap-6 bg-white min-h-[440px]">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Arcade Module</span>
+            <span id="challengeBadge" class="text-xs px-2.5 py-1 bg-blue-50 text-blue-700 border border-blue-200 font-bold rounded-full transition-all duration-300">Target: HAPPY SMILE</span>
+        </div>
+
+        <div class="relative flex-grow bg-slate-50 border border-slate-200/60 rounded-xl overflow-hidden flex items-center justify-center">
+            <video id="webcam" autoplay playsinline class="w-full h-full object-cover scale-x-[-1]"></video>
+            <div class="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20">
+                <div class="w-52 h-52 border-[3px] border-slate-900 rounded-full"></div>
+            </div>
+        </div>
+
+        <div class="flex gap-4">
+            <button onclick="loopChallengeRoute()" class="px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs tracking-wider transition">🎭 TRY ANOTHER EMOTION</button>
+            <button id="actionBtn" onclick="scoreExpressionGame()" class="flex-grow py-3 canva-gradient-bg text-white font-bold rounded-xl tracking-wide shadow transition hover:opacity-90">📸 CAPTURE & SCORE</button>
+        </div>
+    </div>
+
+    <div id="gameFeedbackCard" class="warm-card rounded-2xl p-6 flex flex-col justify-between items-center text-center bg-white min-h-[440px] transition-all duration-500">
+        <div class="w-full text-left"><span class="text-xs font-bold text-slate-400 uppercase tracking-widest block">Gauge Assessment Output</span></div>
+        
+        <div class="my-auto space-y-6 w-full">
+            <div class="relative w-36 h-36 flex items-center justify-center mx-auto">
+                <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="40" stroke="#F1F5F9" stroke-width="8" fill="transparent"/>
+                    <circle id="dialCircle" cx="50" cy="50" r="40" stroke="#0052CC" stroke-width="8" fill="transparent" stroke-dasharray="251.2" stroke-dashoffset="251.2" class="transition-all duration-1000 ease-out"/>
+                </svg>
+                <div class="absolute inset-0 flex flex-col items-center justify-center">
+                    <span id="dialValueText" class="text-3xl font-black text-slate-800">0%</span>
+                    <span id="dialLabel" class="text-[9px] text-slate-400 font-bold tracking-widest uppercase">HAPPY</span>
+                </div>
+            </div>
+
+            <div class="space-y-2 max-w-xs mx-auto">
+                <h4 id="tierHeader" class="font-extrabold text-lg text-slate-800 transition duration-300">Flash your expression!</h4>
+                <p id="tierLog" class="text-xs text-slate-500 leading-relaxed transition duration-300">Align your frame coordinates, activate your expression matrix, and score your performance.</p>
+            </div>
+        </div>
+        <div class="w-full h-4"></div>
+    </div>
+</div>
+
+<canvas id="canvas" class="hidden" width="480" height="480"></canvas>
+
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+<script>
+let streamActive = false, gameIndex = 0;
+const THEMES = { 'Happy': '#0052CC', 'Surprise': '#06B6D4', 'Angry': '#EF4444', 'Sad': '#3B82F6' };
+const ARCHADE_LOOPS = [
+    { title: 'HAPPY SMILE', key: 'Happy', label: 'HAPPY' },
+    { title: 'SURPRISE GASP', key: 'Surprise', label: 'SURPRISE' },
+    { title: 'ANGRY SCOWL', key: 'Angry', label: 'ANGRY' },
+    { title: 'SAD FROWN', key: 'Sad', label: 'SAD' }
+];
+
+const webcam = document.getElementById('webcam');
+window.addEventListener('DOMContentLoaded', startStream);
+
+async function startStream() {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 }, audio: false });
+        webcam.srcObject = stream; streamActive = true;
+    } catch(err) { alert("Webcam linking blocked."); }
+}
+
+function loopChallengeRoute() {
+    gameIndex = (gameIndex + 1) % ARCHADE_LOOPS.length;
+    const current = ARCHADE_LOOPS[gameIndex];
+    
+    document.getElementById('challengeBadge').innerText = `Target: ${current.title}`;
+    document.getElementById('dialLabel').innerText = current.label;
+    document.getElementById('tierHeader').innerText = `Target shifted to ${current.label}!`;
+    document.getElementById('tierLog').innerText = `Ready to record expression weights for the ${current.title} target matrix.`;
+    
+    const color = THEMES[current.key];
+    document.getElementById('dialCircle').style.stroke = color;
+    document.getElementById('gameFeedbackCard').style.borderColor = '#E2E8F0';
+    document.getElementById('gameFeedbackCard').style.boxShadow = 'none';
+    updateWheel(0);
+}
+
+function updateWheel(pct) {
+    const circle = document.getElementById('dialCircle');
+    const circumference = 2 * Math.PI * 40;
+    circle.style.strokeDashoffset = circumference - (pct / 100) * circumference;
+    document.getElementById('dialValueText').innerText = `${Math.round(pct)}%`;
+}
+
+async function scoreExpressionGame() {
+    const btn = document.getElementById('actionBtn'); btn.disabled = true;
+    const canvas = document.getElementById('canvas'); const ctx = canvas.getContext('2d');
+    ctx.translate(canvas.width, 0); ctx.scale(-1, 1);
+    ctx.drawImage(webcam, 0, 0, canvas.width, canvas.height);
+    ctx.setTransform(1,0,0,1,0,0);
+    
+    let blob = null;
+    await new Promise(r => canvas.toBlob(b => { blob = b; r(); }, 'image/jpeg'));
+    const form = new FormData(); form.append('file', blob, 'game.jpg');
+    
+    try {
+        const res = await fetch('/predict', { method: 'POST', body: form });
+        const data = await res.json();
+        if(data.success) {
+            const activeChallenge = ARCHADE_LOOPS[gameIndex];
+            const targetScore = data.all_scores[activeChallenge.key] || 0;
+            const card = document.getElementById('gameFeedbackCard');
+            const color = THEMES[activeChallenge.key];
+            
+            updateWheel(targetScore);
+            card.style.borderColor = color;
+            card.style.boxShadow = `0 10px 25px -5px ${color}15`;
+
+            const h = document.getElementById('tierHeader');
+            const l = document.getElementById('tierLog');
+
+            if(activeChallenge.key === 'Happy') {
+                if(targetScore < 20) {
+                    h.innerText = "Locked State."; h.style.color = '#64748B';
+                    l.innerText = `Current mood registered as ${data.emotion.toUpperCase()}. Your facial muscles look a bit locked down—we need more smile! Let it rip! ☀️`;
+                } else if(targetScore >= 20 && targetScore < 50) {
+                    h.innerText = "Getting warmer!"; h.style.color = '#0052CC';
+                    l.innerText = "The AI sees a smirk forming, but you haven't crossed the joy threshold yet. Push those corners higher!";
+                } else if(targetScore >= 50 && targetScore < 80) {
+                    h.innerText = "✨ SUCCESS!"; h.style.color = '#10B981';
+                    l.innerText = `That qualifies as a genuine happy face at ${targetScore.toFixed(1)}%! But don't stop there—can we push this past 80% for maximum radiance?`;
+                } else {
+                    confetti({ particleCount: 100, spread: 50 });
+                    h.innerText = "🔥 MAXIMUM RADIANCE!"; h.style.color = '#7F00FF';
+                    l.innerText = `Absolutely stunning smile breaking indices at ${targetScore.toFixed(1)}%! You broke the meter calibration thresholds! 🎉`;
+                }
+            } else {
+                if(targetScore < 40) {
+                    h.innerText = "Try increasing intensity."; h.style.color = '#64748B';
+                    l.innerText = `The model read a heavy baseline profile, seeing only ${targetScore.toFixed(1)}% validation for ${activeChallenge.label}. Emphasize your features!`;
+                } else if(targetScore >= 40 && targetScore < 75) {
+                    h.innerText = "Vector matching..."; h.style.color = color;
+                    l.innerText = `Ooh, getting closer! The AI registered ${targetScore.toFixed(1)}% matching coordinates. Expand your expressions.`;
+                } else {
+                    confetti({ particleCount: 80, spread: 40 });
+                    h.innerText = "🎯 ARCHADE HIT!"; h.style.color = '#10B981';
+                    l.innerText = `Perfect micro-expression match sequence! You cleanly emulated a clear ${activeChallenge.label} condition matrix at ${targetScore.toFixed(1)}%!`;
+                }
+            }
+        }
+    } catch(err) { alert("Arcade connection failed."); }
+    btn.disabled = false;
+}
+</script>
+{% endblock %}

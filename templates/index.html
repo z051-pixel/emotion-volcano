@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="max-w-4xl mx-auto px-6 py-16 text-center space-y-12 my-auto">
+    <div class="space-y-4">
+        <div class="w-12 h-12 rounded-full joy-core mx-auto"></div>
+        <h2 class="text-4xl font-extrabold tracking-tight sm:text-5xl text-slate-900">
+            Welcome to <span class="canva-gradient-text font-black">Emotion Volcano</span>
+        </h2>
+        <p class="text-base text-slate-500 max-w-lg mx-auto leading-relaxed">Discover your mood today. Use advanced computer vision neural architectures to read your internal emotional climate.</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 text-left max-w-3xl mx-auto">
+        <div class="warm-card rounded-2xl p-6 flex flex-col justify-between space-y-6 hover:border-blue-400 hover:shadow-lg hover:shadow-blue-500/5 transition duration-300">
+            <div class="space-y-2">
+                <div class="text-2xl">📷</div>
+                <h3 class="font-black text-lg text-slate-800">Mood Check</h3>
+                <p class="text-sm text-slate-500 leading-relaxed">Capture or upload an image slice to evaluate your full holistic emotional index, color-shifting feedback panels, and probability graphs.</p>
+            </div>
+            <a href="/checker" class="w-full py-3 canva-gradient-bg text-white rounded-xl text-center text-sm font-bold shadow-md hover:opacity-90 transition duration-300">Open Scanner</a>
+        </div>
+
+        <div class="warm-card rounded-2xl p-6 flex flex-col justify-between space-y-6 hover:border-purple-400 hover:shadow-lg hover:shadow-purple-500/5 transition duration-300">
+            <div class="space-y-2">
+                <div class="text-2xl">✨</div>
+                <h3 class="font-black text-lg text-slate-800">Smile Meter</h3>
+                <p class="text-sm text-slate-500 leading-relaxed">Test your muscular control. Loop through dynamic emotional challenges, control the central radial gauge dial, and unlock high-score tiers.</p>
+            </div>
+            <a href="/game" class="w-full py-3 canva-gradient-bg text-white rounded-xl text-center text-sm font-bold shadow-md hover:opacity-90 transition duration-300">Play Arcade</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

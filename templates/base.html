@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ISense — Cognitive Architecture</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+        body { background-color: #FAFAFA; color: #1E293B; }
+        .warm-card { background-color: #FFFFFF; border: 1px solid #E2E8F0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.04); }
+        
+        .joy-core {
+            background-color: #FDBA12;
+            box-shadow: 0 0 14px 4px rgba(253, 186, 18, 0.7), 
+                        inset 0 0 4px rgba(255, 255, 255, 0.8);
+            animation: pulseGlow 2.5s ease-in-out infinite;
+        }
+        @keyframes pulseGlow {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 14px 4px rgba(253, 186, 18, 0.7); }
+            50% { transform: scale(1.1); box-shadow: 0 0 20px 8px rgba(253, 186, 18, 0.9); }
+        }
+
+        /* Canva Gradient text and backgrounds styling */
+        .canva-gradient-text {
+            background: linear-gradient(135deg, #0052CC 0%, #7F00FF 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .canva-gradient-bg {
+            background: linear-gradient(135deg, #0052CC 0%, #7F00FF 100%);
+        }
+        .canva-gradient-border {
+            border-image: linear-gradient(135deg, #0052CC 0%, #7F00FF 100%) 1;
+        }
+    </style>
+    {% block head %}{% endblock %}
+</head>
+<body class="min-h-screen flex flex-col antialiased font-sans">
+
+    <header class="w-full bg-white border-b border-slate-200/80 sticky top-0 z-50 backdrop-blur-md bg-white/90">
+        <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+            <a href="/" class="flex items-center gap-3 group">
+                <div class="w-5 h-5 rounded-full joy-core"></div>
+                <span class="font-black text-xl tracking-wider canva-gradient-text">Emotion Volcano</span>
+            </a>
+            
+            <nav class="flex items-center gap-4 text-sm font-bold">
+                <a href="/" class="text-slate-500 hover:text-slate-900 px-2 py-1.5 transition">Home</a>
+                
+                <a href="/checker" class="relative inline-block p-[2px] rounded-[15px] canva-gradient-bg text-slate-800 transition hover:opacity-90">
+    <span class="block bg-white px-3 py-1.5 rounded-[13px]">
+        📷 Mood Check
+    </span>
+</a>
+<a href="/game" class="relative inline-block p-[2px] rounded-[15px] canva-gradient-bg text-slate-800 transition hover:opacity-90">
+    <span class="block bg-white px-3 py-1.5 rounded-[13px]">
+        ✨ Smile Meter
+    </span>
+</a>
+                
+                <a href="/about" class="text-slate-500 hover:text-slate-900 px-2 py-1.5 transition">About</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="flex-grow flex flex-col">
+        {% block content %}{% endblock %}
+    </main>
+
+</body>
+</html>
