@@ -1,0 +1,163 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="max-w-6xl w-full mx-auto p-6 grid grid-cols-1 md:grid-cols-2 gap-8 my-auto items-stretch">
+    <div class="warm-card rounded-2xl p-6 flex flex-col justify-between gap-6 bg-white min-h-[440px]">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Source Stream</span>
+            <div class="bg-slate-50 p-1 rounded-lg flex border border-slate-200 text-xs">
+                <button id="btn-cam" onclick="toggleInput('cam')" class="px-3 py-1.5 font-semibold bg-white border border-slate-200/80 rounded-md text-slate-800 shadow-sm transition">Live Camera</button>
+                <button id="btn-upload" onclick="toggleInput('upload')" class="px-3 py-1.5 font-semibold text-slate-500 transition">Upload File</button>
+            </div>
+        </div>
+
+        <div class="relative flex-grow bg-slate-50 border border-slate-200/60 rounded-xl overflow-hidden flex items-center justify-center">
+            <div id="camView" class="absolute inset-0 w-full h-full flex items-center justify-center">
+                <video id="webcam" autoplay playsinline class="w-full h-full object-cover scale-x-[-1]"></video>
+                <div class="absolute inset-0 flex items-center justify-center pointer-events-none opacity-30">
+                    <div id="camOval" class="w-48 h-64 border-[2px] border-slate-700 border-dashed rounded-[50%/40%_40%_60%_60%] transition-colors duration-500"></div>
+                </div>
+            </div>
+            <div id="uploadView" class="hidden absolute inset-0 w-full h-full p-6 flex flex-col items-center justify-center text-center">
+                <input type="file" id="fileInput" accept="image/*" class="hidden">
+                
+                <div id="uploadPlaceholder" class="cursor-pointer" onclick="document.getElementById('fileInput').click()">
+                    <span class="text-3xl mb-2 block">📁</span>
+                    <p class="text-sm font-medium text-slate-600 hover:text-blue-600 transition">Click to select image file assets</p>
+                </div>
+
+                <div id="previewContainer" class="hidden absolute inset-0 w-full h-full bg-white rounded-xl p-4 flex flex-col justify-between items-center z-10">
+                    <div class="flex-grow w-full flex items-center justify-center overflow-hidden">
+                        <img id="preview" class="max-w-full max-h-[180px] object-contain rounded-lg shadow-sm" src="#">
+                    </div>
+                    <button onclick="document.getElementById('fileInput').click()" class="mt-3 px-4 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg tracking-wide transition shadow-sm">
+                        🔄 CHOOSE ANOTHER IMAGE
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <button id="actionBtn" onclick="runInference()" class="w-full py-3 canva-gradient-bg text-white font-bold rounded-xl tracking-wide shadow transition hover:opacity-90">⚡ ANALYZE MATRIX</button>
+    </div>
+
+    <div id="feedbackCard" class="warm-card rounded-2xl p-6 flex flex-col justify-center items-center text-center bg-white min-h-[440px] transition-all duration-500">
+        <div id="blankState" class="text-slate-400 space-y-2">
+            <span class="text-3xl block">📡</span>
+            <p class="text-sm font-medium">Pipeline idle. Initiate capture matrix sequence.</p>
+        </div>
+        
+        <div id="resultsView" class="hidden w-full text-left flex flex-col justify-between h-full space-y-6">
+            <div>
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Primary Emotion State</span>
+                <h3 id="emotionHeader" class="text-4xl font-black tracking-tight text-slate-900 mt-1 transition duration-500">Neutral</h3>
+                <p id="insightBody" class="text-sm text-slate-600 leading-relaxed border-l-2 border-slate-300 pl-3 mt-3"></p>
+            </div>
+            
+            <div class="border-t border-slate-100 pt-4">
+                <button onclick="toggleBarsDrawer()" class="w-full flex items-center justify-between text-xs font-bold text-slate-400 uppercase tracking-wider hover:text-slate-700 transition">
+                    <span>See AI Feature Map Matrix</span>
+                    <span id="accordionArrow" class="transition duration-300">↓</span>
+                </button>
+                <div id="barsBox" class="hidden space-y-3 pt-4"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<canvas id="canvas" class="hidden" width="480" height="480"></canvas>
+
+<script>
+let inputMode = 'cam', streamActive = false;
+const ACCENTS = { 'Angry': '#EF4444', 'Disgust': '#10B981', 'Fear': '#8B5CF6', 'Happy': '#FDBA12', 'Neutral': '#64748B', 'Sad': '#3B82F6', 'Surprise': '#06B6D4' };
+const webcam = document.getElementById('webcam'), fileInput = document.getElementById('fileInput'), preview = document.getElementById('preview'), barsBox = document.getElementById('barsBox');
+
+window.addEventListener('DOMContentLoaded', startStream);
+
+function toggleInput(mode) {
+    inputMode = mode;
+    document.getElementById('btn-cam').className = mode === 'cam' ? "px-3 py-1.5 font-semibold bg-white border border-slate-200/80 rounded-md text-slate-800 shadow-sm transition" : "px-3 py-1.5 font-semibold text-slate-500 transition";
+    document.getElementById('btn-upload').className = mode === 'upload' ? "px-3 py-1.5 font-semibold bg-white border border-slate-200/80 rounded-md text-slate-800 shadow-sm transition" : "px-3 py-1.5 font-semibold text-slate-500 transition";
+    if(mode === 'cam') { document.getElementById('camView').classList.remove('hidden'); document.getElementById('uploadView').classList.add('hidden'); startStream(); }
+    else { document.getElementById('camView').classList.add('hidden'); document.getElementById('uploadView').classList.remove('hidden'); stopStream(); }
+}
+
+async function startStream() {
+    if (streamActive) return;
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 }, audio: false });
+        webcam.srcObject = stream; streamActive = true;
+    } catch (err) { alert("Camera access blocked."); }
+}
+
+function stopStream() {
+    if(!streamActive) return;
+    webcam.srcObject.getTracks().forEach(t => t.stop());
+    webcam.srcObject = null; streamActive = false;
+}
+
+fileInput.addEventListener('change', function() {
+    if (this.files[0]) {
+        const reader = new FileReader();
+        reader.onload = e => { 
+            const imgPreview = document.getElementById('preview');
+            const container = document.getElementById('previewContainer');
+            
+            imgPreview.src = e.target.result; 
+            container.classList.remove('hidden'); 
+        }
+        reader.readAsDataURL(this.files[0]);
+    }
+});
+
+function toggleBarsDrawer() {
+    const arrow = document.getElementById('accordionArrow');
+    barsBox.classList.toggle('hidden');
+    arrow.style.transform = barsBox.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
+}
+
+async function runInference() {
+    const btn = document.getElementById('actionBtn'); btn.disabled = true; btn.innerText = "EVALUATING MODEL...";
+    let blob = null;
+
+    if (inputMode === 'cam') {
+        const canvas = document.getElementById('canvas'); const ctx = canvas.getContext('2d');
+        ctx.translate(canvas.width, 0); ctx.scale(-1, 1);
+        ctx.drawImage(webcam, 0, 0, canvas.width, canvas.height);
+        ctx.setTransform(1,0,0,1,0,0);
+        await new Promise(r => canvas.toBlob(b => { blob = b; r(); }, 'image/jpeg'));
+    } else {
+        if (!fileInput.files[0]) { alert("Load file asset first."); btn.disabled = false; btn.innerText = "⚡ ANALYZE MATRIX"; return; }
+        blob = fileInput.files[0];
+    }
+
+    const form = new FormData(); form.append('file', blob, 'img.jpg');
+    try {
+        const res = await fetch('/predict', { method: 'POST', body: form });
+        const data = await res.json();
+        if(data.success) {
+            document.getElementById('blankState').classList.add('hidden');
+            document.getElementById('resultsView').classList.remove('hidden');
+            
+            const color = ACCENTS[data.emotion] || '#64748B';
+            const eh = document.getElementById('emotionHeader');
+            eh.innerText = data.emotion;
+            eh.style.color = color;
+            document.getElementById('camOval').style.borderColor = color;
+            document.getElementById('feedbackCard').style.borderColor = color;
+            document.getElementById('feedbackCard').style.boxShadow = `0 10px 25px -5px ${color}15`;
+            document.getElementById('insightBody').innerText = data.insight;
+            
+            barsBox.innerHTML = '';
+            for (const [em, sc] of Object.entries(data.all_scores)) {
+                const barColor = ACCENTS[em] || '#64748B';
+                barsBox.insertAdjacentHTML('beforeend', `
+                    <div class="space-y-1 text-xs">
+                        <div class="flex justify-between text-slate-500 font-medium"><span>${em}</span><span>${sc.toFixed(1)}%</span></div>
+                        <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden"><div class="h-full transition-all duration-1000" style="width: ${sc}%; background-color: ${barColor}"></div></div>
+                    </div>`);
+            }
+        }
+    } catch(err) { alert("Inference loop error."); }
+    btn.disabled = false; btn.innerText = "⚡ ANALYZE MATRIX";
+}
+</script>
+{% endblock %}
