@@ -2,3 +2,4 @@ Flask==3.0.3
 numpy==1.26.4
 tensorflow-cpu
 gunicorn==22.0.0
+Pillow
